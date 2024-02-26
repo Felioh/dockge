@@ -15,6 +15,7 @@ import Appearance from "./components/settings/Appearance.vue";
 import General from "./components/settings/General.vue";
 const Security = () => import("./components/settings/Security.vue");
 import About from "./components/settings/About.vue";
+import GitCredentials from "./components/settings/GitCredentials.vue";
 
 const routes = [
     {
@@ -82,6 +83,10 @@ const routes = [
                                 path: "about",
                                 component: About,
                             },
+                            {
+                                path: "gitCredentials",
+                                component: GitCredentials,
+                            }
                         ]
                     },
                 ]

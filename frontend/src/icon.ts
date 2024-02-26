@@ -108,7 +108,7 @@ library.add(
     faRocket,
     faRotate,
     faCloudArrowDown,
-    faArrowsRotate,
+    faArrowsRotate
 );
 
 export { FontAwesomeIcon };

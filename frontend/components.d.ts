@@ -17,6 +17,8 @@ declare module 'vue' {
     Confirm: typeof import('./src/components/Confirm.vue')['default']
     Container: typeof import('./src/components/Container.vue')['default']
     General: typeof import('./src/components/settings/General.vue')['default']
+    GitCredentials: typeof import('./src/components/settings/GitCredentials.vue')['default']
+    GitOpsInput: typeof import('./src/components/GitOpsInput.vue')['default']
     HiddenInput: typeof import('./src/components/HiddenInput.vue')['default']
     Login: typeof import('./src/components/Login.vue')['default']
     NetworkInput: typeof import('./src/components/NetworkInput.vue')['default']

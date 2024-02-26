@@ -84,6 +84,7 @@ export class Stack {
             status: this._status,
             tags: [],
             isManagedByDockge: this.isManagedByDockge,
+            isGitRepo: this.isGitRepo,
             composeFileName: this._composeFileName,
             endpoint,
         };
@@ -105,6 +106,10 @@ export class Stack {
 
     get isManagedByDockge() : boolean {
         return fs.existsSync(this.path) && fs.statSync(this.path).isDirectory();
+    }
+
+    get isGitRepo() : boolean {
+        return fs.existsSync(path.join(this.path, ".git")) && fs.statSync(path.join(this.path, ".git")).isDirectory();
     }
 
     get status() : number {
@@ -445,6 +450,15 @@ export class Stack {
 
     async update(socket: DockgeSocket) {
         const terminalName = getComposeTerminalName(socket.endpoint, this.name);
+
+        if (this.isGitRepo) {
+            // TODO: error handling e.g. local changes
+            let exitCode = await Terminal.exec(this.server, socket, terminalName, "git", [ "pull" ], this.path);
+            if (exitCode !== 0) {
+                throw new Error("Failed to update, please check the terminal output for more information.");
+            }
+        }
+
         let exitCode = await Terminal.exec(this.server, socket, terminalName, "docker", [ "compose", "pull" ], this.path);
         if (exitCode !== 0) {
             throw new Error("Failed to pull, please check the terminal output for more information.");

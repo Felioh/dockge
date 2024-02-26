@@ -16,10 +16,15 @@
                         {{ $t("deployStack") }}
                     </button>
 
-                    <button v-if="isEditMode" class="btn btn-normal" :disabled="processing" @click="saveStack">
+                    <button v-if="isEditMode && !stack.isGitRepo" class="btn btn-normal" :disabled="processing" @click="saveStack">
                         <font-awesome-icon icon="save" class="me-1" />
                         {{ $t("saveStackDraft") }}
                     </button>
+
+                    <!-- <button v-if="isEditMode && stack.isGitRepo" class="btn btn-normal" :disabled="processing" @click="cloneStack">
+                        <font-awesome-icon icon="save" class="me-1" />
+                        {{ $t("saveStackDraft") }}
+                    </button> -->
 
                     <button v-if="!isEditMode" class="btn btn-secondary" :disabled="processing" @click="enableEditMode">
                         <font-awesome-icon icon="pen" class="me-1" />
@@ -103,39 +108,48 @@
                                     </option>
                                 </select>
                             </div>
+
+                            <!-- Manage with git -->
+                            <div class="form-check form-switch my-3">
+                                <input id="gitops" v-model="stack.isGitRepo" class="form-check-input" type="checkbox">
+                                <label class="form-check-label">
+                                    {{ $t("ManageWithGit") }}
+                                </label>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Containers -->
-                    <h4 class="mb-3">{{ $tc("container", 2) }}</h4>
+                    <div v-if="!stack.isGitRepo || (stack.isGitRepo && !isEditMode)"> <!-- TODO: check condition -->
+                        <h4 class="mb-3">{{ $tc("container", 2) }}</h4>
 
-                    <div v-if="isEditMode" class="input-group mb-3">
-                        <input
-                            v-model="newContainerName"
-                            placeholder="New Container Name..."
-                            class="form-control"
-                            @keyup.enter="addContainer"
-                        />
-                        <button class="btn btn-primary" @click="addContainer">
-                            {{ $t("addContainer") }}
-                        </button>
+                        <div v-if="isEditMode && !stack.isGitRepo" class="input-group mb-3">
+                            <input
+                                v-model="newContainerName"
+                                placeholder="New Container Name..."
+                                class="form-control"
+                                @keyup.enter="addContainer"
+                            />
+                            <button class="btn btn-primary" @click="addContainer">
+                                {{ $t("addContainer") }}
+                            </button>
+                        </div>
+
+                        <div ref="containerList">
+                            <Container
+                                v-for="(service, name) in jsonConfig.services"
+                                :key="name"
+                                :name="name"
+                                :is-edit-mode="isEditMode"
+                                :first="name === Object.keys(jsonConfig.services)[0]"
+                                :status="serviceStatusList[name]"
+                            />
+                        </div>
                     </div>
 
-                    <div ref="containerList">
-                        <Container
-                            v-for="(service, name) in jsonConfig.services"
-                            :key="name"
-                            :name="name"
-                            :is-edit-mode="isEditMode"
-                            :first="name === Object.keys(jsonConfig.services)[0]"
-                            :status="serviceStatusList[name]"
-                        />
-                    </div>
-
-                    <button v-if="false && isEditMode && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
-
+                    <button v-if="false && isEditMode && !stack.isGitRepo && jsonConfig.services && Object.keys(jsonConfig.services).length > 0" class="btn btn-normal mb-3" @click="addContainer">{{ $t("addContainer") }}</button>
                     <!-- General -->
-                    <div v-if="isEditMode">
+                    <div v-if="isEditMode && !stack.isGitRepo">
                         <h4 class="mb-3">{{ $t("extra") }}</h4>
                         <div class="shadow-box big-padding mb-3">
                             <!-- URLs -->
@@ -146,6 +160,52 @@
                                 <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
                             </div>
                         </div>
+                    </div>
+
+                    <!-- GitOps -->
+                    <div v-if="isEditMode && stack.isGitRepo">
+                        <h4 class="mb-3">{{ $t("GitConfig") }}</h4>
+                        <div class="shadow-box big-padding mb-3">
+                            <!-- Repo URL -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    {{ $t("repositoryUrl") }}
+                                </label>
+                                <div class="input-group mb-3">
+                                    <input
+                                        v-model="stack.gitUrl"
+                                        class="form-control"
+                                        placeholder="https://"
+                                    />
+                                </div>
+
+                                <div class="form-text"></div>
+                            </div>
+
+                            <!-- ref -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    {{ $t("ref") }}
+                                </label>
+                                <div class="input-group mb-3">
+                                    <input
+                                        v-model="stack.gitRef"
+                                        class="form-control"
+                                        placeholder="main"
+                                    />
+                                </div>
+
+                                <div class="form-text"></div>
+                            </div>
+                        </div>
+                        <!-- <div class="shadow-box big-padding mb-3">
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    {{ $tc("Repository URL", 2) }}
+                                </label>
+                                <ArrayInput name="urls" :display-name="$t('url')" placeholder="https://" object-type="x-dockge" />
+                            </div>
+                        </div> -->
                     </div>
 
                     <!-- Combined Terminal Output -->
@@ -162,7 +222,7 @@
                         ></Terminal>
                     </div>
                 </div>
-                <div class="col-lg-6">
+                <div v-if="!stack.isGitRepo || (stack.isGitRepo && !isEditMode)" class="col-lg-6"> <!-- TODO: check condition -->
                     <h4 class="mb-3">{{ stack.composeFileName }}</h4>
 
                     <!-- YAML editor -->
@@ -468,6 +528,8 @@ export default {
                 composeENV,
                 isManagedByDockge: true,
                 endpoint: "",
+                giturl: "",
+                gitref: "",
             };
 
             this.yamlCodeChange();
@@ -545,45 +607,60 @@ export default {
 
         deployStack() {
             this.processing = true;
-
-            if (!this.jsonConfig.services) {
-                this.$root.toastError("No services found in compose.yaml");
-                this.processing = false;
-                return;
-            }
-
-            // Check if services is object
-            if (typeof this.jsonConfig.services !== "object") {
-                this.$root.toastError("Services must be an object");
-                this.processing = false;
-                return;
-            }
-
-            let serviceNameList = Object.keys(this.jsonConfig.services);
-
-            // Set the stack name if empty, use the first container name
-            if (!this.stack.name && serviceNameList.length > 0) {
-                let serviceName = serviceNameList[0];
-                let service = this.jsonConfig.services[serviceName];
-
-                if (service && service.container_name) {
-                    this.stack.name = service.container_name;
-                } else {
-                    this.stack.name = serviceName;
-                }
-            }
-
             this.bindTerminal();
 
-            this.$root.emitAgent(this.stack.endpoint, "deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
-                this.processing = false;
-                this.$root.toastRes(res);
+            if (this.stack.isGitRepo) {
+                //TODO: stack name cannot be empty
+                this.$root.emitAgent(this.stack.endpoint, "gitDeploy", this.stack.name, this.stack.gitUrl, this.stack.gitRef, (res) => {
+                    this.processing = false;
+                    this.$root.toastRes(res);
 
-                if (res.ok) {
-                    this.isEditMode = false;
-                    this.$router.push(this.url);
+                    if (res.ok) {
+                        this.isEditMode = false;
+                        this.$router.push(this.url);
+                    }
+
+                });
+
+            } else {
+                if (!this.jsonConfig.services) {
+                    this.$root.toastError("No services found in compose.yaml");
+                    this.processing = false;
+                    return;
                 }
-            });
+
+                // Check if services is object
+                if (typeof this.jsonConfig.services !== "object") {
+                    this.$root.toastError("Services must be an object");
+                    this.processing = false;
+                    return;
+                }
+
+                let serviceNameList = Object.keys(this.jsonConfig.services);
+
+                // Set the stack name if empty, use the first container name
+                if (!this.stack.name && serviceNameList.length > 0) {
+                    let serviceName = serviceNameList[0];
+                    let service = this.jsonConfig.services[serviceName];
+
+                    if (service && service.container_name) {
+                        this.stack.name = service.container_name;
+                    } else {
+                        this.stack.name = serviceName;
+                    }
+                }
+
+                this.$root.emitAgent(this.stack.endpoint, "deployStack", this.stack.name, this.stack.composeYAML, this.stack.composeENV, this.isAdd, (res) => {
+                    this.processing = false;
+                    this.$root.toastRes(res);
+
+                    if (res.ok) {
+                        this.isEditMode = false;
+                        this.$router.push(this.url);
+                    }
+                });
+            }
+
         },
 
         saveStack() {
@@ -640,6 +717,16 @@ export default {
             this.processing = true;
 
             this.$root.emitAgent(this.endpoint, "updateStack", this.stack.name, (res) => {
+                this.processing = false;
+                this.$root.toastRes(res);
+            });
+        },
+
+        gitUpdate() {
+            this.processing = true;
+
+            //TODO: check if stack is git repo
+            this.$root.emitAgent(this.endpoint, "pullGitRepo", this.stack.name, (res) => {
                 this.processing = false;
                 this.$root.toastRes(res);
             });

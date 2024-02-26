@@ -83,6 +83,9 @@ export default {
                 security: {
                     title: this.$t("Security"),
                 },
+                gitCredentials: {
+                    title: this.$t("GitCredentials"),
+                },
                 about: {
                     title: this.$t("About"),
                 },
